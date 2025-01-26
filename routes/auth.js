@@ -9,3 +9,4 @@ router.post("/login", login); // Callback for handling login submissions
 router.get("/logout", logout); // Logout functionality
 
 module.exports = router;
+  

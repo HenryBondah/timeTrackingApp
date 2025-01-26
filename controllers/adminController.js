@@ -27,7 +27,7 @@ exports.addUser = async (req, res) => {
   } catch (error) {
     res.render("pages/addUser", { error: "Error sending email." });
   }
-};
+}; 
 
 // View all users and logs
 exports.viewUsers = async (req, res) => {
