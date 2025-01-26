@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="/style/style.css">
+</head>
+<body>
+  <header>
+    <div class="logo">TimeTracker</div>
+    <nav>
+      <a href="/dashboard">Home</a>
+      <a href="/edit-time">View/Edit Logs</a>
+      <a href="/logout">Logout</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h1>Edit Time Logs</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Clock In</th>
+          <th>Clock Out</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="logsTable">
+        <!-- Logs will be dynamically added here -->
+      </tbody>
+    </table>
+
+    <script>
+      const userId = "<%= user.email %>";
+      const logs = JSON.parse(localStorage.getItem("timeLogs")) || [];
+
+      const logsTable = document.getElementById("logsTable");
+      function renderLogs() {
+        logsTable.innerHTML = logs
+          .filter((log) => log.userId === userId)
+          .map(
+            (log, index) =>
+              `<tr>
+                <td>${log.clockIn}</td>
+                <td>${log.clockOut || "N/A"}</td>
+                <td>${log.status === "approved" ? "Approved" : "Pending"}</td>
+                <td>
+                  ${
+                    log.status === "approved"
+                      ? "<span>Locked</span>"
+                      : `<button onclick="editLog(${index})">Edit</button>`
+                  }
+                </td>
+              </tr>`
+          )
+          .join("");
+      }
+
+      function editLog(index) {
+        const newClockIn = prompt("Enter new Clock In time:", logs[index].clockIn);
+        const newClockOut = prompt("Enter new Clock Out time:", logs[index].clockOut);
+        if (newClockIn && newClockOut) {
+          logs[index].clockIn = newClockIn;
+          logs[index].clockOut = newClockOut;
+          localStorage.setItem("timeLogs", JSON.stringify(logs));
+          alert("Log updated!");
+          renderLogs();
+        }
+      }
+
+      // Initial rendering of logs
+      renderLogs();
+    </script>
+  </div>
+</body>
+</html>

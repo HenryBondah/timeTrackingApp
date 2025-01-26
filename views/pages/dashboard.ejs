@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="/style/style.css">
+</head>
+<body>
+  <header>
+    <div class="logo">TimeTracker</div>
+    <nav>
+      <a href="/dashboard">Home</a>
+      <a href="/edit-time">View/Edit Logs</a>
+      <a href="/logout">Logout</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h1>Welcome, <%= user.email %></h1>
+    <p>Here you can clock in and clock out your working hours.</p>
+
+    <!-- Clock In/Out Buttons -->
+    <button onclick="clockIn()">Clock In</button>
+    <button onclick="clockOut()">Clock Out</button>
+
+    <!-- Manual Time Input -->
+    <h3>Manual Time Entry</h3>
+    <label for="manualDate">Select Date:</label>
+    <input type="date" id="manualDate">
+    <label for="manualClockIn">Clock In:</label>
+    <input type="time" id="manualClockIn">
+    <label for="manualClockOut">Clock Out:</label>
+    <input type="time" id="manualClockOut">
+    <button onclick="saveManualEntry()">Save</button>
+
+    <script>
+        const userId = "<%= user.email %>";
+        const logs = JSON.parse(localStorage.getItem("timeLogs")) || [];
+      
+        // Render logs function is removed since logs aren't shown on the dashboard anymore
+      
+        // Clock In
+        function clockIn() {
+          const clockInTime = new Date().toISOString();
+          logs.push({ userId, clockIn: clockInTime, clockOut: null });
+          localStorage.setItem("timeLogs", JSON.stringify(logs));
+          alert("Clocked in at: " + clockInTime);
+        }
+      
+        // Clock Out
+        function clockOut() {
+          const log = logs.find((log) => log.userId === userId && log.clockOut === null);
+          if (!log) {
+            alert("You need to clock in first!");
+            return;
+          }
+          const clockOutTime = new Date().toISOString();
+          log.clockOut = clockOutTime;
+          localStorage.setItem("timeLogs", JSON.stringify(logs));
+          alert("Clocked out at: " + clockOutTime);
+        }
+      
+        // Save Manual Entry
+        function saveManualEntry() {
+          const manualDate = document.getElementById("manualDate").value;
+          const manualClockIn = document.getElementById("manualClockIn").value;
+          const manualClockOut = document.getElementById("manualClockOut").value;
+      
+          if (!manualDate || !manualClockIn || !manualClockOut) {
+            alert("Please fill out all fields for manual entry.");
+            return;
+          }
+      
+          const clockIn = new Date(manualDate + "T" + manualClockIn).toISOString();
+          const clockOut = new Date(manualDate + "T" + manualClockOut).toISOString();
+      
+          logs.push({ userId, clockIn, clockOut });
+          localStorage.setItem("timeLogs", JSON.stringify(logs));
+          alert("Manual entry saved.");
+        }
+      </script>
+        </div>
+</body>
+</html>

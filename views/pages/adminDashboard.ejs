@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="/style/style.css">
+</head>
+<body>
+  <header>
+    <div class="logo">TimeTracker</div>
+    <nav>
+      <a href="/admin-dashboard">Admin Dashboard</a>
+      <a href="/set-hours">Set Working Hours</a>
+      <a href="/logout">Logout</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h1>Admin Dashboard</h1>
+    <p>View all users and their time logs:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Clock In</th>
+          <th>Clock Out</th>
+          <th>Within Time</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="logsTable">
+        <!-- Logs will be dynamically added here -->
+      </tbody>
+    </table>
+
+    <script>
+      const logs = JSON.parse(localStorage.getItem("timeLogs")) || [];
+      const workingHours = JSON.parse(localStorage.getItem("workingHours")) || {};
+
+      const logsTable = document.getElementById("logsTable");
+
+      // Check if a time is within the working hours
+      function isWithinTime(clockIn, clockOut, day) {
+        const hours = workingHours[day];
+        if (!hours) return "No";
+
+        const start = new Date(`1970-01-01T${hours.startHour}:00`);
+        const end = new Date(`1970-01-01T${hours.endHour}:00`);
+        const userClockIn = new Date(clockIn);
+        const userClockOut = new Date(clockOut || clockIn);
+
+        return userClockIn >= start && userClockOut <= end ? "Yes" : "No";
+      }
+
+      // Render logs table
+      function renderLogs() {
+        logsTable.innerHTML = logs
+          .map((log, index) => {
+            const day = new Date(log.clockIn).toLocaleDateString("en-US", { weekday: "long" });
+            const withinTime = isWithinTime(log.clockIn, log.clockOut, day);
+
+            return `<tr>
+              <td>${log.userId}</td>
+              <td>${log.clockIn}</td>
+              <td>${log.clockOut || "N/A"}</td>
+              <td>${withinTime}</td>
+              <td>${log.status === "approved" ? "Approved" : "Pending"}</td>
+              <td>
+                <button onclick="toggleApproval(${index})">
+                  ${log.status === "approved" ? "Unapprove" : "Approve"}
+                </button>
+              </td>
+            </tr>`;
+          })
+          .join("");
+      }
+
+      // Toggle approval status
+      function toggleApproval(index) {
+        logs[index].status =
+          logs[index].status === "approved" ? "pending" : "approved";
+        localStorage.setItem("timeLogs", JSON.stringify(logs));
+        alert(`Log ${logs[index].status}`);
+        renderLogs();
+      }
+
+      // Initial render
+      renderLogs();
+    </script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="/style/style.css">
+</head>
+<body>
+  <% if (user) { %>
+    <header>
+      <div class="logo">TimeTracker</div>
+      <nav>
+        <% if (user.role === "admin") { %>
+          <a href="/admin-dashboard">Admin Dashboard</a>
+          <a href="/set-hours">Set Working Hours</a>
+        <% } else { %>
+          <a href="/dashboard">Home</a>
+          <a href="/edit-time">View/Edit Logs</a>
+        <% } %>
+        <a href="/logout">Logout</a>
+      </nav>
+    </header>
+  <% } %>
+
+  <div class="container">
+    <%= body %>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 TimeTracker. All rights reserved.</p>
+  </footer>
+</body>
+</html>

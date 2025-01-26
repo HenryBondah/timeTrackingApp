@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="/style/style.css">
+</head>
+<body>
+  <header>
+    <div class="logo">TimeTracker</div>
+    <nav>
+      <a href="/admin-dashboard">Admin Dashboard</a>
+      <a href="/set-hours">Set Working Hours</a>
+      <a href="/logout">Logout</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h1>Set Working Hours</h1>
+
+    <!-- Form to Add/Update Working Hours -->
+    <label for="daySelect">Day:</label>
+    <select id="daySelect">
+      <option value="Monday">Monday</option>
+      <option value="Tuesday">Tuesday</option>
+      <option value="Wednesday">Wednesday</option>
+      <option value="Thursday">Thursday</option>
+      <option value="Friday">Friday</option>
+      <option value="Saturday">Saturday</option>
+      <option value="Sunday">Sunday</option>
+    </select>
+    <label for="startHour">Start Time:</label>
+    <input type="time" id="startHour">
+    <label for="endHour">End Time:</label>
+    <input type="time" id="endHour">
+    <button onclick="saveWorkingHours()">Save</button>
+
+    <!-- Table to Display and Manage Working Hours -->
+    <h3>Current Working Hours</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Day</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="workingHoursTable">
+        <!-- Table rows will be dynamically rendered -->
+      </tbody>
+    </table>
+
+    <script>
+      const workingHours = JSON.parse(localStorage.getItem("workingHours")) || {};
+
+      // Save working hours for a specific day
+      function saveWorkingHours() {
+        const day = document.getElementById("daySelect").value;
+        const startHour = document.getElementById("startHour").value;
+        const endHour = document.getElementById("endHour").value;
+
+        if (!startHour || !endHour) {
+          alert("Please set both start and end times.");
+          return;
+        }
+
+        workingHours[day] = { startHour, endHour };
+        localStorage.setItem("workingHours", JSON.stringify(workingHours));
+        alert(`Working hours for ${day} saved.`);
+        renderWorkingHours();
+      }
+
+      // Delete working hours for a specific day
+      function deleteWorkingHours(day) {
+        if (confirm(`Are you sure you want to delete the working hours for ${day}?`)) {
+          delete workingHours[day];
+          localStorage.setItem("workingHours", JSON.stringify(workingHours));
+          alert(`Working hours for ${day} deleted.`);
+          renderWorkingHours();
+        }
+      }
+
+      // Render the working hours table
+      function renderWorkingHours() {
+        const tableBody = document.getElementById("workingHoursTable");
+        tableBody.innerHTML = Object.entries(workingHours)
+          .map(
+            ([day, hours]) =>
+              `<tr>
+                <td>${day}</td>
+                <td>${hours.startHour}</td>
+                <td>${hours.endHour}</td>
+                <td>
+                  <button onclick="deleteWorkingHours('${day}')">Delete</button>
+                </td>
+              </tr>`
+          )
+          .join("");
+      }
+
+      // Initial render
+      renderWorkingHours();
+    </script>
+  </div>
+</body>
+</html>
