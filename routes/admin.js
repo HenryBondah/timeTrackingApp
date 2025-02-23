@@ -1,26 +1,20 @@
 const express = require("express");
+const adminController = require("../controllers/adminController");
+
 const router = express.Router();
 
-// Mock time logs (replace this with a real database later)
-const logs = [
-  { userId: "user@example.com", clockIn: "2025-01-25T08:00", clockOut: "2025-01-25T17:00" },
-  { userId: "user2@example.com", clockIn: "2025-01-26T09:00", clockOut: null },
-];
+// ✅ Admin Dashboard
+router.get("/admin-dashboard", adminController.viewUsers);
 
-// Admin Dashboard Route
-router.get("/admin-dashboard", (req, res) => {
-  if (!req.session.user || req.session.user.role !== "admin") {
-    return res.redirect("/login");
-  }
-  res.render("pages/adminDashboard", { user: req.session.user, logs });
-});
+// ✅ Add User
+router.get("/add-user", adminController.renderAddUserPage);
+router.post("/add-user", adminController.addUser);
 
-// Set Working Hours Route
-router.get("/set-hours", (req, res) => {
-  if (!req.session.user || req.session.user.role !== "admin") {
-    return res.redirect("/login");
-  }
-  res.render("pages/setHours", { user: req.session.user });
-});
+// ✅ Set Working Hours (Fixed)
+router.get("/set-hours", adminController.renderSetHoursPage); // ✅ ADDED THIS
+router.post("/set-hours", adminController.setHours);
+
+// ✅ Approve/Unapprove Time Logs
+router.post("/toggle-approval", adminController.toggleApproval);
 
 module.exports = router;

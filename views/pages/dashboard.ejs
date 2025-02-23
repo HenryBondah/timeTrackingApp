@@ -12,70 +12,71 @@
       <a href="/logout">Logout</a>
     </nav>
   </header>
+
   <div class="container">
     <h1>Welcome, <%= user.email %></h1>
     <p>Here you can clock in and clock out your working hours.</p>
 
-    <!-- Clock In/Out Buttons -->
-    <button onclick="clockIn()">Clock In</button>
-    <button onclick="clockOut()">Clock Out</button>
+    <!-- Clock In/Out Forms -->
+    <form action="/clock-in" method="POST" onsubmit="return confirmAction('clock in?')">
+      <button type="submit">Clock In</button>
+    </form>
+    <form action="/clock-out" method="POST" onsubmit="return confirmAction('clock out?')">
+      <button type="submit">Clock Out</button>
+    </form>
 
-    <!-- Manual Time Input -->
-    <h3>Manual Time Entry</h3>
-    <label for="manualDate">Select Date:</label>
-    <input type="date" id="manualDate">
-    <label for="manualClockIn">Clock In:</label>
-    <input type="time" id="manualClockIn">
-    <label for="manualClockOut">Clock Out:</label>
-    <input type="time" id="manualClockOut">
-    <button onclick="saveManualEntry()">Save</button>
+<!-- Manual Time Input -->
+<h3>Manual Time Entry</h3>
+<label for="manualDate">Select Date:</label>
+<input type="date" id="manualDate">
+<label for="manualClockIn">Clock In:</label>
+<input type="time" id="manualClockIn">
+<label for="manualClockOut">Clock Out:</label>
+<input type="time" id="manualClockOut">
+<button type="button" onclick="saveManualEntry()">Save</button>
 
-    <script>
-        const userId = "<%= user.email %>";
-        const logs = JSON.parse(localStorage.getItem("timeLogs")) || [];
-      
-        // Render logs function is removed since logs aren't shown on the dashboard anymore
-      
-        // Clock In
-        function clockIn() {
-          const clockInTime = new Date().toISOString();
-          logs.push({ userId, clockIn: clockInTime, clockOut: null });
-          localStorage.setItem("timeLogs", JSON.stringify(logs));
-          alert("Clocked in at: " + clockInTime);
-        }
-      
-        // Clock Out
-        function clockOut() {
-          const log = logs.find((log) => log.userId === userId && log.clockOut === null);
-          if (!log) {
-            alert("You need to clock in first!");
-            return;
-          }
-          const clockOutTime = new Date().toISOString();
-          log.clockOut = clockOutTime;
-          localStorage.setItem("timeLogs", JSON.stringify(logs));
-          alert("Clocked out at: " + clockOutTime);
-        }
-      
-        // Save Manual Entry
-        function saveManualEntry() {
-          const manualDate = document.getElementById("manualDate").value;
-          const manualClockIn = document.getElementById("manualClockIn").value;
-          const manualClockOut = document.getElementById("manualClockOut").value;
-      
-          if (!manualDate || !manualClockIn || !manualClockOut) {
-            alert("Please fill out all fields for manual entry.");
-            return;
-          }
-      
-          const clockIn = new Date(manualDate + "T" + manualClockIn).toISOString();
-          const clockOut = new Date(manualDate + "T" + manualClockOut).toISOString();
-      
-          logs.push({ userId, clockIn, clockOut });
-          localStorage.setItem("timeLogs", JSON.stringify(logs));
-          alert("Manual entry saved.");
-        }
-      </script>
-        </div>
+<script>
+  const userId = "<%= user.email %>";
+
+  // ✅ Confirmation function
+  function confirmAction(action) {
+    return confirm(`Are you sure you want to ${action}?`);
+  }
+
+  // ✅ Save Manual Time Entry
+  async function saveManualEntry() {
+    const manualDate = document.getElementById("manualDate").value;
+    const manualClockIn = document.getElementById("manualClockIn").value;
+    const manualClockOut = document.getElementById("manualClockOut").value;
+
+    if (!manualDate || !manualClockIn || !manualClockOut) {
+      alert("Please fill out all fields.");
+      return;
+    }
+
+    if (!confirmAction("save this manual time entry")) return;
+
+    const clockIn = new Date(manualDate + "T" + manualClockIn).toISOString();
+    const clockOut = new Date(manualDate + "T" + manualClockOut).toISOString();
+
+    try {
+      const response = await fetch("/manual-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, clockIn, clockOut })
+      });
+
+      if (response.ok) {
+        alert("Manual entry saved!");
+        location.reload(); // Refresh the page to show new logs
+      } else {
+        alert("Error saving manual entry.");
+      }
+    } catch (error) {
+      console.error("❌ Error:", error);
+      alert("Failed to save manual entry.");
+    }
+  }
+</script>
 </body>
 </html>

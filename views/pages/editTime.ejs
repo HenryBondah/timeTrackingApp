@@ -12,6 +12,7 @@
       <a href="/logout">Logout</a>
     </nav>
   </header>
+
   <div class="container">
     <h1>Edit Time Logs</h1>
     <table>
@@ -23,51 +24,62 @@
           <th>Action</th>
         </tr>
       </thead>
-      <tbody id="logsTable">
-        <!-- Logs will be dynamically added here -->
+      <tbody>
+        <% logs.forEach(log => { %>
+          <tr>
+            <td><%= log.clockIn %></td>
+            <td><%= log.clockOut || "N/A" %></td>
+            <td><%= log.status === "approved" ? "Approved" : "Pending" %></td>
+            <td>
+              <% if (log.status !== "approved") { %>
+                <button onclick="editLog('<%= log.id %>', '<%= log.clockIn %>', '<%= log.clockOut %>')">Edit</button>
+                <button onclick="deleteLog('<%= log.id %>')">Delete</button>
+              <% } else { %>
+                <span>Locked</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
       </tbody>
     </table>
 
     <script>
-      const userId = "<%= user.email %>";
-      const logs = JSON.parse(localStorage.getItem("timeLogs")) || [];
+      function editLog(logId, currentClockIn, currentClockOut) {
+        const newClockIn = prompt("Enter new Clock In time:", currentClockIn);
+        const newClockOut = prompt("Enter new Clock Out time:", currentClockOut);
+        if (!newClockIn || !newClockOut) {
+          alert("Both Clock In and Clock Out times are required.");
+          return;
+        }
 
-      const logsTable = document.getElementById("logsTable");
-      function renderLogs() {
-        logsTable.innerHTML = logs
-          .filter((log) => log.userId === userId)
-          .map(
-            (log, index) =>
-              `<tr>
-                <td>${log.clockIn}</td>
-                <td>${log.clockOut || "N/A"}</td>
-                <td>${log.status === "approved" ? "Approved" : "Pending"}</td>
-                <td>
-                  ${
-                    log.status === "approved"
-                      ? "<span>Locked</span>"
-                      : `<button onclick="editLog(${index})">Edit</button>`
-                  }
-                </td>
-              </tr>`
-          )
-          .join("");
+        fetch("/edit-time", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ logId, clockIn: newClockIn, clockOut: newClockOut })
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert(data.message);
+          location.reload();
+        })
+        .catch(error => console.error("❌ Error updating log:", error));
       }
 
-      function editLog(index) {
-        const newClockIn = prompt("Enter new Clock In time:", logs[index].clockIn);
-        const newClockOut = prompt("Enter new Clock Out time:", logs[index].clockOut);
-        if (newClockIn && newClockOut) {
-          logs[index].clockIn = newClockIn;
-          logs[index].clockOut = newClockOut;
-          localStorage.setItem("timeLogs", JSON.stringify(logs));
-          alert("Log updated!");
-          renderLogs();
-        }
-      }  
+      function deleteLog(logId) {
+        if (!confirm("Are you sure you want to delete this log?")) return;
 
-      // Initial rendering of logs
-      renderLogs();
+        fetch("/delete-time", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ logId })
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert(data.message);
+          location.reload();
+        })
+        .catch(error => console.error("❌ Error deleting log:", error));
+      }
     </script>
   </div>
 </body>

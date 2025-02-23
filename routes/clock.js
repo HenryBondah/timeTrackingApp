@@ -1,28 +1,46 @@
 const express = require("express");
+const { clockIn, clockOut, getUserLogs, editTime, deleteTime, manualLog } = require("../controllers/clockController");
+const { db } = require("../config/firebase");
+const { collection, query, where, getDocs } = require("firebase/firestore");
+
 const router = express.Router();
 
-// Mock time logs (replace this with a real database later)
-const logs = [
-  { userId: "user@example.com", clockIn: "2025-01-25T08:00", clockOut: "2025-01-25T17:00", status: "approved" },
-  { userId: "user@example.com", clockIn: "2025-01-26T09:00", clockOut: "2025-01-26T18:00", status: "pending" },
-];
+// ✅ Middleware to Protect Routes (Ensures User is Logged In)
+const requireLogin = (req, res, next) => {
+    if (!req.session.user) {
+        console.log("⚠️ Access Denied: User Not Logged In");
+        return res.redirect("/login");
+    }
+    next();
+};
 
-// Dashboard Route
-router.get("/dashboard", (req, res) => {
-  if (!req.session.user || req.session.user.role !== "user") {
-    return res.redirect("/login");
-  }
-  const userLogs = logs.filter((log) => log.userId === req.session.user.email);
-  res.render("pages/dashboard", { user: req.session.user, logs: userLogs });
+// ✅ User Dashboard (Fetch Logs and Pass to EJS)
+router.get("/dashboard", requireLogin, getUserLogs);
+
+// ✅ Edit Time Page (Ensure Logs are Passed to Edit Page)
+router.get("/edit-time", requireLogin, async (req, res) => {
+    const { email } = req.session.user;
+
+    try {
+        const logsQuery = query(collection(db, "time-logs"), where("userId", "==", email));
+        const logsSnapshot = await getDocs(logsQuery);
+        const logs = logsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        res.render("pages/editTime", { user: req.session.user, logs });
+    } catch (error) {
+        console.error("❌ Error fetching logs:", error);
+        res.render("pages/editTime", { user: req.session.user, logs: [] });
+    }
 });
 
-// Edit-Time Route
-router.get("/edit-time", (req, res) => {
-  if (!req.session.user || req.session.user.role !== "user") {
-    return res.redirect("/login");
-  }
-  const userLogs = logs.filter((log) => log.userId === req.session.user.email);
-  res.render("pages/editTime", { user: req.session.user, logs: userLogs });
-});
+// ✅ Clock In & Clock Out Routes
+router.post("/clock-in", requireLogin, clockIn);
+router.post("/clock-out", requireLogin, clockOut);
+
+// ✅ Edit & Delete Time Logs
+router.post("/edit-time", requireLogin, editTime);
+router.post("/delete-time", requireLogin, deleteTime);
+router.post("/manual-log", requireLogin, manualLog);
+
 
 module.exports = router;

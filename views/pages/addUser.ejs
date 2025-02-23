@@ -4,27 +4,31 @@
   <link rel="stylesheet" href="/style/style.css">
 </head>
 <body>
-    <header>
-        <div class="logo">TimeTracker</div>
-        <nav>
-          <a href="/dashboard">Home</a>
-          <a href="/edit-time">View/Edit Logs</a>
-          <a href="/logout">Logout</a>
-        </nav>
-      </header>
-      
+  <header>
+    <div class="logo">TimeTracker</div>
+    <nav>
+      <a href="/admin-dashboard">Admin Dashboard</a>
+      <a href="/set-hours">Set Working Hours</a>
+      <a href="/logout">Logout</a>
+    </nav>
+  </header>
+  
   <div class="container">
     <h1>Add New User</h1>
+    
     <% if (success) { %>
       <p class="success"><%= success %></p>
     <% } %>
     <% if (error) { %>
       <p class="error"><%= error %></p>
     <% } %>
+
     <form method="POST" action="/add-user">
       <input type="email" name="email" placeholder="User Email" required />
-      <button type="submit">Send Invitation</button>
+      <input type="password" name="password" placeholder="User Password" required />
+      <button type="submit">Create User</button>
     </form>
+
     <a href="/admin-dashboard">Back to Dashboard</a>
   </div>
 </body>

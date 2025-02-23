@@ -1,12 +1,13 @@
 const express = require("express");
-const { login, logout, renderLoginPage } = require("../controllers/authController");
+const { renderRegisterPage, registerAdmin, login, logout, renderLoginPage } = require("../controllers/authController");
 
 const router = express.Router();
 
-// Routes
-router.get("/login", renderLoginPage); // Correct callback for rendering the login page
-router.post("/login", login); // Callback for handling login submissions
-router.get("/logout", logout); // Logout functionality
+// ✅ Authentication Routes
+router.get("/login", renderLoginPage);
+router.post("/login", login);
+router.get("/register", renderRegisterPage);
+router.post("/register", registerAdmin);
+router.get("/logout", logout);
 
 module.exports = router;
-  

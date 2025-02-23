@@ -8,10 +8,12 @@
     <div class="logo">TimeTracker</div>
     <nav>
       <a href="/admin-dashboard">Admin Dashboard</a>
+      <a href="/add-user">Create User</a>
       <a href="/set-hours">Set Working Hours</a>
       <a href="/logout">Logout</a>
     </nav>
   </header>
+
   <div class="container">
     <h1>Admin Dashboard</h1>
     <p>View all users and their time logs:</p>
@@ -28,19 +30,49 @@
         </tr>
       </thead>
       <tbody id="logsTable">
-        <!-- Logs will be dynamically added here -->
+        <% if (logs.length > 0) { %>
+          <% logs.forEach(log => { %>
+            <tr>
+              <td><%= log.userId %></td>
+              <td><%= log.clockIn %></td>
+              <td><%= log.clockOut || "N/A" %></td>
+              <td>
+                <% 
+                  const day = new Date(log.clockIn).toLocaleDateString("en-US", { weekday: "long" });
+                  const workingHour = workingHours.find(hour => hour.day === day) || null;
+                  const withinTime = workingHour 
+                    ? new Date(log.clockIn) >= new Date(`1970-01-01T${workingHour.startHour}:00`) &&
+                      new Date(log.clockOut || log.clockIn) <= new Date(`1970-01-01T${workingHour.endHour}:00`)
+                      ? "Yes" : "No"
+                    : "No";
+                %>
+                <%= withinTime %>
+              </td>
+              <td><%= log.status === "approved" ? "Approved" : "Pending" %></td>
+              <td>
+                <button onclick="toggleApproval('<%= log.id %>', '<%= log.status %>')">
+                  <%= log.status === "approved" ? "Unapprove" : "Approve" %>
+                </button>
+              </td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr>
+            <td colspan="6" style="text-align: center;">No logs available.</td>
+          </tr>
+        <% } %>
       </tbody>
     </table>
+  </div>
 
-    <script>
-      const logs = JSON.parse(localStorage.getItem("timeLogs")) || [];
-      const workingHours = JSON.parse(localStorage.getItem("workingHours")) || {};
+  <script>
+    let logs = <%- JSON.stringify(logs) %>;
+    let workingHours = <%- JSON.stringify(workingHours || []) %>;
 
-      const logsTable = document.getElementById("logsTable");
+    const logsTable = document.getElementById("logsTable");
 
-      // Check if a time is within the working hours
-      function isWithinTime(clockIn, clockOut, day) {
-        const hours = workingHours[day];
+    function isWithinTime(clockIn, clockOut, day) {
+        const hours = workingHours.find(hour => hour.day === day);
         if (!hours) return "No";
 
         const start = new Date(`1970-01-01T${hours.startHour}:00`);
@@ -49,43 +81,58 @@
         const userClockOut = new Date(clockOut || clockIn);
 
         return userClockIn >= start && userClockOut <= end ? "Yes" : "No";
-      }
+    }
 
-      // Render logs table
-      function renderLogs() {
+    function renderLogs() {
         logsTable.innerHTML = logs
-          .map((log, index) => {
-            const day = new Date(log.clockIn).toLocaleDateString("en-US", { weekday: "long" });
-            const withinTime = isWithinTime(log.clockIn, log.clockOut, day);
+            .map(log => {
+                const day = new Date(log.clockIn).toLocaleDateString("en-US", { weekday: "long" });
+                const withinTime = isWithinTime(log.clockIn, log.clockOut, day);
 
-            return `<tr>
-              <td>${log.userId}</td>
-              <td>${log.clockIn}</td>
-              <td>${log.clockOut || "N/A"}</td>
-              <td>${withinTime}</td>
-              <td>${log.status === "approved" ? "Approved" : "Pending"}</td>
-              <td>
-                <button onclick="toggleApproval(${index})">
-                  ${log.status === "approved" ? "Unapprove" : "Approve"}
-                </button>
-              </td>
-            </tr>`;
-          })
-          .join("");
-      }
+                return `<tr>
+                  <td>${log.userId}</td>
+                  <td>${log.clockIn}</td>
+                  <td>${log.clockOut || "N/A"}</td>
+                  <td>${withinTime}</td>
+                  <td>${log.status === "approved" ? "Approved" : "Pending"}</td>
+                  <td>
+                    <button onclick="toggleApproval('${log.id}', '${log.status}')">
+                      ${log.status === "approved" ? "Unapprove" : "Approve"}
+                    </button>
+                  </td>
+                </tr>`;
+            })
+            .join("");
+    }
 
-      // Toggle approval status
-      function toggleApproval(index) {
-        logs[index].status =
-          logs[index].status === "approved" ? "pending" : "approved";
-        localStorage.setItem("timeLogs", JSON.stringify(logs));
-        alert(`Log ${logs[index].status}`);
-        renderLogs();
-      }
+    renderLogs();
 
-      // Initial render
-      renderLogs();
-    </script>
-  </div>
+    async function toggleApproval(logId, currentStatus) {
+        if (!logId) {
+            alert("Error: Missing Log ID");
+            return;
+        }
+
+        console.log("ℹ️ Sending Log ID:", logId);
+
+        try {
+            const response = await fetch("/toggle-approval", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ logId: logId.trim(), status: currentStatus })
+            });
+
+            if (response.ok) {
+                alert("Log status updated!");
+                location.reload();
+            } else {
+                alert("Error updating log status.");
+            }
+        } catch (error) {
+            console.error("❌ Error:", error);
+            alert("Failed to update log status.");
+        }
+    }
+  </script>
 </body>
 </html>
