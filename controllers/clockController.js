@@ -10,7 +10,6 @@ const clockController = {
         }
 
         const { email } = req.session.user;
-
         try {
             const logsQuery = query(collection(db, "time-logs"), where("userId", "==", email));
             const logsSnapshot = await getDocs(logsQuery);
@@ -23,6 +22,7 @@ const clockController = {
         }
     },
 
+    
     // ✅ Clock In
     clockIn: async (req, res) => {
         const { email } = req.session.user;

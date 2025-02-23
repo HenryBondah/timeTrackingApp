@@ -9,7 +9,7 @@ const createTestAccount = async () => {
 };
 
 const adminController = {
-    // ✅ View all users and logs
+    // ✅ View all users and logs 
     viewUsers: async (req, res) => {
       try {
           // ✅ Fetch Users from Firestore
