@@ -1,4 +1,5 @@
 const express = require("express");
+const { renderSetDemarcationPage, setClockInArea, getClockInArea } = require("../controllers/adminController");
 const adminController = require("../controllers/adminController");
 
 const router = express.Router();
@@ -16,5 +17,15 @@ router.post("/set-hours", adminController.setHours);
 
 // ✅ Approve/Unapprove Time Logs
 router.post("/toggle-approval", adminController.toggleApproval);
+
+// ✅ Route to Render the Set Demarcation Page
+router.get("/set-demarcation", renderSetDemarcationPage);
+
+// ✅ Route to Save Clock-In Area
+
+router.post("/set-clockin-area", setClockInArea);
+
+// ✅ Route to Fetch Saved Clock-In Area
+router.get("/get-clockin-area", getClockInArea);
 
 module.exports = router;

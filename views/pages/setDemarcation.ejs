@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="/style/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <style>
+        /* Fullscreen Map */
+        #map {
+            height: 600px;
+            transition: height 0.3s;
+        }
+        .fullscreen {
+            height: 90vh !important;
+            width: 100% !important;
+        }
+        #coordinates {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">TimeTracker - Set Demarcation</div>
+        <nav>
+            <a href="/admin-dashboard">Dashboard</a>
+            <a href="/set-demarcation">Set Demarcation</a>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h1>Set Clock-In Area</h1>
+        <p>Use the map below to set the allowed clock-in area.</p>
+
+        <!-- Fullscreen Button -->
+        <button onclick="toggleFullscreen()">Toggle Fullscreen</button>
+
+        <!-- Map Container -->
+        <div id="map"></div>
+
+        <!-- Coordinates Display -->
+        <p id="coordinates">Saved Location: <span id="savedCoords">None</span></p>
+
+        <!-- Radius Selection -->
+        <label for="radius">Set Radius (meters):</label>
+        <input type="number" id="radius" value="100" min="10">
+        <button onclick="saveClockInArea()">Save Area</button>
+    </div>
+
+    <script>
+        let map = L.map('map').setView([0, 0], 13);
+        let marker, circle;
+
+        // Load Map
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // ✅ Fetch and Pin Saved Clock-In Area
+        async function fetchSavedArea() {
+            try {
+                const response = await fetch("/get-clockin-area");
+                const data = await response.json();
+
+                if (data.latitude && data.longitude) {
+                    const { latitude, longitude, radius } = data;
+
+                    // ✅ Remove existing markers
+                    if (marker) map.removeLayer(marker);
+                    if (circle) map.removeLayer(circle);
+
+                    // ✅ Add saved marker & circle
+                    marker = L.marker([latitude, longitude]).addTo(map);
+                    circle = L.circle([latitude, longitude], { radius }).addTo(map);
+                    map.setView([latitude, longitude], 15);
+
+                    // ✅ Update displayed coordinates
+                    document.getElementById("savedCoords").innerText = 
+                        `Lat: ${latitude}, Lng: ${longitude}, Radius: ${radius}m`;
+                }
+            } catch (error) {
+                console.error("❌ Error fetching saved area:", error);
+            }
+        }
+
+        // ✅ Center Map on User Location
+        navigator.geolocation.getCurrentPosition(position => {
+            const { latitude, longitude } = position.coords;
+            map.setView([latitude, longitude], 15);
+        });
+
+        // ✅ Allow Admin to Set a Clock-In Area
+        map.on('click', function (e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            const radius = document.getElementById("radius").value;
+
+            if (marker) {
+                map.removeLayer(marker);
+                map.removeLayer(circle);
+            }
+
+            marker = L.marker([lat, lng]).addTo(map);
+            circle = L.circle([lat, lng], { radius }).addTo(map);
+
+            document.getElementById("savedCoords").innerText = 
+                `Lat: ${lat}, Lng: ${lng}, Radius: ${radius}m`;
+        });
+
+        // ✅ Save Clock-In Area to Firestore
+        async function saveClockInArea() {
+            if (!marker || !circle) {
+                alert("Click on the map to set a location first.");
+                return;
+            }
+
+            const location = marker.getLatLng();
+            const radius = circle.getRadius();
+
+            if (!confirm("Are you sure you want to save this clock-in area?")) return;
+
+            const response = await fetch("/set-clockin-area", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ latitude: location.lat, longitude: location.lng, radius })
+            });
+
+            if (response.ok) {
+                alert("Clock-in area saved successfully!");
+                fetchSavedArea(); // Reload the saved location
+            } else {
+                alert("Error saving area.");
+            }
+        }
+
+        // ✅ Toggle Fullscreen Mode
+        function toggleFullscreen() {
+            document.getElementById("map").classList.toggle("fullscreen");
+            map.invalidateSize();
+        }
+
+        // ✅ Load saved location on page load
+        fetchSavedArea();
+    </script>
+</body>
+</html>

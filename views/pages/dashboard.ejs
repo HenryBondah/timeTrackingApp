@@ -17,66 +17,110 @@
     <h1>Welcome, <%= user.email %></h1>
     <p>Here you can clock in and clock out your working hours.</p>
 
-    <!-- Clock In/Out Forms -->
-    <form action="/clock-in" method="POST" onsubmit="return confirmAction('clock in?')">
+    <!-- ✅ Clock In Form (Captures GPS Location) -->
+    <form id="clockInForm" action="/clock-in" method="POST">
+      <input type="hidden" name="latitude" id="clockInLat">
+      <input type="hidden" name="longitude" id="clockInLng">
       <button type="submit">Clock In</button>
     </form>
-    <form action="/clock-out" method="POST" onsubmit="return confirmAction('clock out?')">
+
+    <!-- ✅ Clock Out Form (Captures GPS Location) -->
+    <form id="clockOutForm" action="/clock-out" method="POST">
+      <input type="hidden" name="latitude" id="clockOutLat">
+      <input type="hidden" name="longitude" id="clockOutLng">
       <button type="submit">Clock Out</button>
     </form>
 
-<!-- Manual Time Input -->
-<h3>Manual Time Entry</h3>
-<label for="manualDate">Select Date:</label>
-<input type="date" id="manualDate">
-<label for="manualClockIn">Clock In:</label>
-<input type="time" id="manualClockIn">
-<label for="manualClockOut">Clock Out:</label>
-<input type="time" id="manualClockOut">
-<button type="button" onclick="saveManualEntry()">Save</button>
 
-<script>
-  const userId = "<%= user.email %>";
+    <!-- ✅ Manual Time Input -->
+    <h3>Manual Time Entry</h3>
+    <label for="manualDate">Select Date:</label>
+    <input type="date" id="manualDate">
+    <label for="manualClockIn">Clock In:</label>
+    <input type="time" id="manualClockIn">
+    <label for="manualClockOut">Clock Out:</label>
+    <input type="time" id="manualClockOut">
+    <button type="button" onclick="saveManualEntry()">Save</button>
+  </div>
 
-  // ✅ Confirmation function
-  function confirmAction(action) {
-    return confirm(`Are you sure you want to ${action}?`);
-  }
+  <script>
+    const userId = "<%= user.email %>";
 
-  // ✅ Save Manual Time Entry
-  async function saveManualEntry() {
-    const manualDate = document.getElementById("manualDate").value;
-    const manualClockIn = document.getElementById("manualClockIn").value;
-    const manualClockOut = document.getElementById("manualClockOut").value;
-
-    if (!manualDate || !manualClockIn || !manualClockOut) {
-      alert("Please fill out all fields.");
-      return;
+    // ✅ Confirmation function
+    function confirmAction(action) {
+      return confirm(`Are you sure you want to ${action}?`);
     }
 
-    if (!confirmAction("save this manual time entry")) return;
-
-    const clockIn = new Date(manualDate + "T" + manualClockIn).toISOString();
-    const clockOut = new Date(manualDate + "T" + manualClockOut).toISOString();
-
-    try {
-      const response = await fetch("/manual-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, clockIn, clockOut })
-      });
-
-      if (response.ok) {
-        alert("Manual entry saved!");
-        location.reload(); // Refresh the page to show new logs
+    // ✅ Capture Location on Clock-In and Clock-Out
+    function getLocationAndSubmit(formId, latId, lngId) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          document.getElementById(latId).value = position.coords.latitude;
+          document.getElementById(lngId).value = position.coords.longitude;
+          document.getElementById(formId).submit();
+        }, () => {
+          alert("Location access denied. Cannot proceed.");
+        });
       } else {
-        alert("Error saving manual entry.");
+        alert("Geolocation is not supported by this browser.");
       }
-    } catch (error) {
-      console.error("❌ Error:", error);
-      alert("Failed to save manual entry.");
     }
-  }
-</script>
+
+    // ✅ Prevent Default Form Submit & Get Location First
+    document.getElementById("clockInForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+      getLocationAndSubmit("clockInForm", "clockInLat", "clockInLng");
+    });
+
+    document.getElementById("clockOutForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+      getLocationAndSubmit("clockOutForm", "clockOutLat", "clockOutLng");
+    });
+
+    // ✅ Save Manual Time Entry (Now Captures GPS)
+    async function saveManualEntry() {
+      const manualDate = document.getElementById("manualDate").value;
+      const manualClockIn = document.getElementById("manualClockIn").value;
+      const manualClockOut = document.getElementById("manualClockOut").value;
+
+      if (!manualDate || !manualClockIn || !manualClockOut) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      if (!confirmAction("save this manual time entry")) return;
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async position => {
+          const clockIn = new Date(manualDate + "T" + manualClockIn).toISOString();
+          const clockOut = new Date(manualDate + "T" + manualClockOut).toISOString();
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+
+          try {
+            const response = await fetch("/manual-log", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId, clockIn, clockOut, latitude, longitude })
+            });
+
+            if (response.ok) {
+              alert("Manual entry saved!");
+              location.reload();
+            } else {
+              alert("Error saving manual entry.");
+            }
+          } catch (error) {
+            console.error("❌ Error:", error);
+            alert("Failed to save manual entry.");
+          }
+        }, () => {
+          alert("Location access denied. Cannot save manual entry.");
+        });
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    }
+  </script>
 </body>
 </html>

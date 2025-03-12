@@ -1,7 +1,8 @@
 const { db } = require("../config/firebase");
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
-const { collection, getDocs, addDoc, updateDoc, doc } = require("firebase/firestore");
+const { collection, getDocs, addDoc, updateDoc, doc, deleteDoc, query, where } = require("firebase/firestore");
+
 
 // ✅ Generate a test Ethereal SMTP account
 const createTestAccount = async () => {
@@ -142,6 +143,75 @@ const adminController = {
           res.render("pages/setHours", { success: null, error: "Error setting working hours." });
       }
   },
+
+// ✅ Render the Set Demarcation Page
+renderSetDemarcationPage: (req, res) => {
+    res.render("pages/setDemarcation");
+},
+
+// ✅ Save Clock-In Area
+setClockInArea: async (req, res) => {
+    try {
+        const { latitude, longitude, radius } = req.body;
+        const clockInCollection = collection(db, "clock-in-area");
+
+        // Delete previous records
+        const snapshot = await getDocs(clockInCollection);
+        for (const docItem of snapshot.docs) {
+            await deleteDoc(doc(db, "clock-in-area", docItem.id));
+        }
+
+        // Add new location
+        await addDoc(clockInCollection, { latitude, longitude, radius });
+
+        console.log(`✅ Clock-in area set at ${latitude}, ${longitude} with ${radius}m radius`);
+        res.status(200).json({ message: "Clock-in area updated successfully." });
+    } catch (error) {
+        console.error("❌ Error setting clock-in area:", error);
+        res.status(500).json({ message: "Error setting clock-in area.", error });
+    }
+},
+
+viewUsers: async (req, res) => {
+    try {
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        const logsSnapshot = await getDocs(collection(db, "time-logs"));
+        const logs = logsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        const hoursSnapshot = await getDocs(collection(db, "working-hours"));
+        const workingHours = hoursSnapshot.docs.map(doc => doc.data());
+
+        res.render("pages/adminDashboard", { users, logs, workingHours });
+    } catch (error) {
+        console.error("❌ Error fetching data:", error);
+        res.status(500).send({ message: "Error fetching data.", error });
+    }
+},
+
+
+// ✅ Fetch Clock-In Area from Firestore
+getClockInArea: async (req, res) => {
+    try {
+        const clockInCollection = collection(db, "clock-in-area");
+        const snapshot = await getDocs(clockInCollection);
+
+        if (!snapshot.empty) {
+            const data = snapshot.docs[0].data();
+            return res.json(data);
+        } else {
+            return res.json({ message: "No clock-in area set." });
+        }
+    } catch (error) {
+        console.error("❌ Error fetching clock-in area:", error);
+        res.status(500).json({ message: "Error fetching clock-in area.", error });
+    }
+}, 
+
 };
 
 module.exports = adminController;

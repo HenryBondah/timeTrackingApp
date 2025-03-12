@@ -34,7 +34,13 @@ router.get("/edit-time", requireLogin, async (req, res) => {
 });
 
 // ✅ Clock In & Clock Out Routes
-router.post("/clock-in", requireLogin, clockIn);
+router.post("/clock-in", requireLogin, async (req, res) => {
+    const { latitude, longitude } = req.body;
+    req.body.latitude = latitude;
+    req.body.longitude = longitude;
+    await clockIn(req, res);
+});
+
 router.post("/clock-out", requireLogin, clockOut);
 
 // ✅ Edit & Delete Time Logs

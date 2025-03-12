@@ -10,6 +10,7 @@
       <a href="/admin-dashboard">Admin Dashboard</a>
       <a href="/add-user">Create User</a>
       <a href="/set-hours">Set Working Hours</a>
+      <a href="/set-demarcation">Set Demarcation</a>
       <a href="/logout">Logout</a>
     </nav>
   </header>
@@ -25,6 +26,7 @@
           <th>Clock In</th>
           <th>Clock Out</th>
           <th>Within Time</th>
+          <th>Within Range</th>
           <th>Status</th>
           <th>Action</th>
         </tr>
@@ -33,14 +35,39 @@
         <% if (logs.length > 0) { %>
           <% logs.forEach(log => { %>
             <tr>
+              <!-- ✅ User Email -->
               <td><%= log.userId %></td>
-              <td><%= log.clockIn %></td>
-              <td><%= log.clockOut || "N/A" %></td>
+
+              <!-- ✅ Clock In Time -->
+              <td><%= log.clockIn ? new Date(log.clockIn).toLocaleString() : "N/A" %></td>
+
+              <!-- ✅ Clock In Location -->
+              <td>
+                <% if (log.clockInLat && log.clockInLng) { %>
+                  Lat: <%= log.clockInLat %>, Lng: <%= log.clockInLng %>
+                <% } else { %>
+                  N/A
+                <% } %>
+              </td>
+
+              <!-- ✅ Clock Out Time -->
+              <td><%= log.clockOut ? new Date(log.clockOut).toLocaleString() : "N/A" %></td>
+
+              <!-- ✅ Clock Out Location -->
+              <td>
+                <% if (log.clockOutLat && log.clockOutLng) { %>
+                  Lat: <%= log.clockOutLat %>, Lng: <%= log.clockOutLng %>
+                <% } else { %>
+                  N/A
+                <% } %>
+              </td>
+
+              <!-- ✅ Within Time -->
               <td>
                 <% 
-                  const day = new Date(log.clockIn).toLocaleDateString("en-US", { weekday: "long" });
+                  const day = log.clockIn ? new Date(log.clockIn).toLocaleDateString("en-US", { weekday: "long" }) : null;
                   const workingHour = workingHours.find(hour => hour.day === day) || null;
-                  const withinTime = workingHour 
+                  const withinTime = workingHour && log.clockIn
                     ? new Date(log.clockIn) >= new Date(`1970-01-01T${workingHour.startHour}:00`) &&
                       new Date(log.clockOut || log.clockIn) <= new Date(`1970-01-01T${workingHour.endHour}:00`)
                       ? "Yes" : "No"
@@ -48,7 +75,14 @@
                 %>
                 <%= withinTime %>
               </td>
+
+              <!-- ✅ Within Range -->
+              <td><%= log.withinRange ? log.withinRange : "Unknown" %></td>
+
+              <!-- ✅ Status -->
               <td><%= log.status === "approved" ? "Approved" : "Pending" %></td>
+
+              <!-- ✅ Approve/Unapprove Button -->
               <td>
                 <button onclick="toggleApproval('<%= log.id %>', '<%= log.status %>')">
                   <%= log.status === "approved" ? "Unapprove" : "Approve" %>
@@ -58,13 +92,12 @@
           <% }) %>
         <% } else { %>
           <tr>
-            <td colspan="6" style="text-align: center;">No logs available.</td>
+            <td colspan="9" style="text-align: center;">No logs available.</td>
           </tr>
         <% } %>
       </tbody>
     </table>
-  </div>
-
+  </div>    
   <script>
     let logs = <%- JSON.stringify(logs) %>;
     let workingHours = <%- JSON.stringify(workingHours || []) %>;
@@ -94,6 +127,7 @@
                   <td>${log.clockIn}</td>
                   <td>${log.clockOut || "N/A"}</td>
                   <td>${withinTime}</td>
+                  <td>${log.withinRange || "Unknown"}</td>
                   <td>${log.status === "approved" ? "Approved" : "Pending"}</td>
                   <td>
                     <button onclick="toggleApproval('${log.id}', '${log.status}')">
